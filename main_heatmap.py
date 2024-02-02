@@ -17,13 +17,14 @@ from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, Ablat
 
 
 # Arguments
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', type=str, default="torchvision.models.resnet.ResNet50_Weights.DEFAULT", help='Path to the model')
 parser.add_argument('--img-path', type=str, default='images', help='input image path')
 parser.add_argument('--output-dir', type=str, default='heat_outputs/', help='output dir')
-parser.add_argument('--target-layer', type=str, default='[model.layer4[-2]]',
-                    help='The layer hierarchical address to which gradcam will applied,'
-                         ' the names should be separated by underline')
+# parser.add_argument('--target-layer', type=eval, default=[[model.layer4[-2]],[model.layer4[-1]]],
+#                     help='The layer hierarchical address to which gradcam will applied,'
+#                          ' the names should be separated by underline')
 parser.add_argument('--method', type=str, default='gradcampp', help='gradcam method: gradcam, gradcampp')
 parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
 # parser.add_argument('--names', type=str, default=None,
@@ -84,16 +85,20 @@ def main(img_path, img_name):
     img = cv2.imread(img_path)  # BGR
 
 
-    model = torchvision.models.resnet50(args.model_path)
-    target_layers = args.target_layer
+    model = torchvision.models.resnet50(pretrained=True)
+    # target_layers = args.target_layer
+    target_layers = [[model.layer4[-2]],[model.layer4[-1]]]
 
     
     # img[..., ::-1]: BGR --> RGB
     # (480, 640, 3) --> (1, 3, 480, 640)
     torch_img = preprocessing(img[..., ::-1],device)
+    # model.eval()  # 设置为评估模式
+    # out = model(torch_img)
+    # print(out.size())
     
     tic = time.time()
-    for target_layer in target_layers:
+    for i, target_layer in enumerate(target_layers):
         if args.method == 'gradcam':
             saliency_method = GradCAM(model=model, target_layers=target_layer)
 
@@ -108,7 +113,7 @@ def main(img_path, img_name):
         save_path = f'{args.output_dir}/{args.method}'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        print(f'[INFO] Saving the final image at {save_path}')
+        # print(f'[INFO] Saving the final image at {save_path}')
 
 
         # targets = [ClassifierOutputTarget(254)]
@@ -121,10 +126,10 @@ def main(img_path, img_name):
         # plt.show()
 
         visualization = visualization[..., ::-1] #RGB->BGR
-        output_path = f'{save_path}/{img_name}'
-        print(output_path)
+        output_path = f'{save_path}/layer{i}_{img_name}'
+        # print(output_path)
         cv2.imwrite(output_path, visualization)
-        print(f'{imgae_name[:-4]}_{img_name} done!!')
+        print(f'{output_path} done!!')
 
     print(f'Total time : {round(time.time() - tic, 4)} s')
 
