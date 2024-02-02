@@ -83,19 +83,14 @@ def main(img_path, img_name):
     # detect single image
     device = args.device
     img = cv2.imread(img_path)  # BGR
-
-
+    
     model = torchvision.models.resnet50(pretrained=True)
     # target_layers = args.target_layer
     target_layers = [[model.layer4[-2]],[model.layer4[-1]]]
 
-    
     # img[..., ::-1]: BGR --> RGB
     # (480, 640, 3) --> (1, 3, 480, 640)
     torch_img = preprocessing(img[..., ::-1],device)
-    # model.eval()  # 设置为评估模式
-    # out = model(torch_img)
-    # print(out.size())
     
     tic = time.time()
     for i, target_layer in enumerate(target_layers):
